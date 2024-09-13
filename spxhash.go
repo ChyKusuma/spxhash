@@ -161,6 +161,11 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 	return sphinxHash
 }
 
+// Add the new exported method
+func (s *SphinxHash) GetHash(data []byte) []byte {
+	return s.hashData(data)
+}
+
 // secureRandomUint64 generates a secure random uint64 value
 func secureRandomUint64() (uint64, error) {
 	b := make([]byte, 8)
