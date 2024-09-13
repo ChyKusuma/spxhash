@@ -10,32 +10,56 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-// Constants for 32-bit and 64-bit hashing
-const (
-	prime32 = 0x9e3779b9         // Golden ratio constant (32-bit)
-	prime64 = 0x517cc1b727220a95 // Golden ratio constant (64-bit)
-)
-
 // SphinxHash is a structure that encapsulates the combination and hashing logic
 type SphinxHash struct {
 	bitSize int
+	data    []byte
 }
+
+const (
+	prime32 = 0x9e3779b9         // Example prime constant for 32-bit hash
+	prime64 = 0x9e3779b97f4a7c15 // Example prime constant for 64-bit hash
+)
 
 // NewSphinxHash creates a new SphinxHash with a specific bit size for the hash
 func NewSphinxHash(bitSize int) *SphinxHash {
 	return &SphinxHash{
 		bitSize: bitSize,
+		data:    nil,
 	}
 }
 
-// secureRandomUint64 generates a cryptographically secure random uint64
-func secureRandomUint64() (uint64, error) {
-	var buf [8]byte
-	_, err := rand.Read(buf[:])
-	if err != nil {
-		return 0, err
+// Write adds data to the hash
+func (s *SphinxHash) Write(p []byte) (n int, err error) {
+	s.data = append(s.data, p...)
+	return len(p), nil
+}
+
+// Sum appends the current hash to b and returns the resulting slice
+func (s *SphinxHash) Sum(b []byte) []byte {
+	hash := s.hashData(s.data)
+	return append(b, hash...)
+}
+
+// Size returns the number of bytes in the hash
+func (s *SphinxHash) Size() int {
+	switch s.bitSize {
+	case 128:
+		return 16
+	case 256:
+		return 32
+	case 384:
+		return 48
+	case 512:
+		return 64
+	default:
+		return 32
 	}
-	return binary.LittleEndian.Uint64(buf[:]), nil
+}
+
+// BlockSize returns the hash block size (dummy implementation)
+func (s *SphinxHash) BlockSize() int {
+	return 1
 }
 
 // hashData calculates the combined hash of data using multiple hash functions based on the bit size
@@ -102,7 +126,6 @@ func (s *SphinxHash) hashData(data []byte) []byte {
 // sphinxHash combines two byte slices (hash1 and hash2) using a prime constant.
 // It ensures constant-time operation to mitigate timing attacks by avoiding any data-dependent branches.
 func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byte {
-
 	// Ensure that both hash slices are of the same length, as we combine corresponding bytes.
 	if len(hash1) != len(hash2) {
 		panic("hash1 and hash2 must have the same length")
@@ -136,6 +159,16 @@ func (s *SphinxHash) sphinxHash(hash1, hash2 []byte, primeConstant uint64) []byt
 
 	// Return the final combined hash as a byte slice.
 	return sphinxHash
+}
+
+// secureRandomUint64 generates a secure random uint64 value
+func secureRandomUint64() (uint64, error) {
+	b := make([]byte, 8)
+	_, err := rand.Read(b)
+	if err != nil {
+		return 0, err
+	}
+	return binary.LittleEndian.Uint64(b), nil
 }
 
 func main() {
